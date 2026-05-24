@@ -1,9 +1,11 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import * as Sentry from '@sentry/react'
 import { useAppSelector } from './store/hooks'
 import { useGetMeQuery } from './api/authApi'
 import { useListTournamentsQuery } from './api/tournamentApi'
 import { BugReportButton } from './components/BugReportButton'
+import { ApiErrorNotification } from './components/ApiErrorNotification'
 
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })))
 const RegisterPage = lazy(() => import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage })))
@@ -98,11 +100,21 @@ function AuthRedirect() {
   return null
 }
 
+function SentryUserSync() {
+  const user = useAppSelector((state) => state.auth.user)
+  useEffect(() => {
+    Sentry.setUser(user ? { id: String(user.id) } : null)
+  }, [user])
+  return null
+}
+
 export default function App() {
   return (
     <>
     <AuthRedirect />
+    <SentryUserSync />
     <BugReportButton />
+    <ApiErrorNotification />
     <Suspense fallback={<PageFallback />}>
       <Routes>
         {/* Public routes */}

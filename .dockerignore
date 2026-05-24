@@ -27,11 +27,9 @@ backend/tests/
 # Frontend build output (rebuilt inside Docker)
 frontend/dist/
 
-# Auto-generated Alembic migration files — these are generated at container
-# startup and stored in a persistent Docker volume (migrations_data).
-# Baking them into the image causes stale-revision chain errors on rebuild.
-data/db_migrations/*.py
-
 # macOS
 .DS_Store
 **/.DS_Store
+
+# Custom
+*.nosync

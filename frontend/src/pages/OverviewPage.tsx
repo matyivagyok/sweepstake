@@ -48,28 +48,28 @@ export function OverviewPage() {
                 className="rounded-full border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-gray-400 hover:text-gray-900 dark:hover:border-gray-400 dark:hover:text-gray-100 transition inline-flex items-center gap-1.5"
               >
                 <Settings size={15} />
-                Settings
+                <span className="hidden sm:inline">Settings</span>
               </button>
               <button
                 onClick={handleLogout}
                 className="rounded-full border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-red-400 hover:text-red-600 dark:hover:border-red-500 dark:hover:text-red-400 transition inline-flex items-center gap-1.5"
               >
                 <LogOut size={15} />
-                Logout
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
             {/* Row 2: competition buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <button
                 onClick={() => { setJoinCode(''); setShowJoin(true) }}
-                className="rounded-full border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-400 hover:text-blue-600 dark:hover:border-blue-500 dark:hover:text-blue-400 transition inline-flex items-center gap-1.5"
+                className="rounded-full border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-400 hover:text-blue-600 dark:hover:border-blue-500 dark:hover:text-blue-400 transition inline-flex items-center justify-center gap-1.5"
               >
                 <UserPlus size={15} />
                 Join SweepStake
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="rounded-full bg-blue-600 hover:bg-blue-700 px-4 py-1.5 text-sm font-medium text-white transition inline-flex items-center gap-1.5"
+                className="rounded-full bg-blue-600 hover:bg-blue-700 px-4 py-1.5 text-sm font-medium text-white transition inline-flex items-center justify-center gap-1.5"
               >
                 <Plus size={15} />
                 Create SweepStake

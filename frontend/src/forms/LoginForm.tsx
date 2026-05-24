@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useLoginMutation } from '../api/authApi'
 import { tournamentApi } from '../api/tournamentApi'
 import { useAppDispatch } from '../store/hooks'
 import { getApiErrorMessage } from '../api/apiError'
+import { useGetConfigQuery } from '../api/configApi'
 
 export function LoginForm() {
   const navigate = useNavigate()
@@ -14,6 +15,14 @@ export function LoginForm() {
   const [login, { isLoading, error }] = useLoginMutation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const { data: config } = useGetConfigQuery()
+
+  useEffect(() => {
+    if (config?.demo_mode && !email && !password) {
+      setEmail('test@example.com')
+      setPassword('Password')
+    }
+  }, [config?.demo_mode])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()

@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery, type BaseQueryFn, type FetchArgs, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react'
+import { addApiError } from '../store/apiErrorSlice'
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api/'
 
@@ -29,6 +30,8 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
     console.log(`[API] ${method} ${url} → OK`)
   }
 
+  const isAuthEndpoint = url.startsWith('/auth/')
+
   if (result.error?.status === 401) {
     console.log('[API] POST /auth/refresh (token refresh)')
     const refreshResult = await rawBaseQuery(
@@ -48,6 +51,19 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
     } else {
       console.warn('[API] POST /auth/refresh → failed', refreshResult.error)
     }
+  }
+
+  if (result.error && !isAuthEndpoint && result.error.status !== 401) {
+    const data = result.error && 'data' in result.error ? (result.error.data as { detail?: string } | undefined) : undefined
+    const message = data?.detail ?? 'Something went wrong. Please try again.'
+    api.dispatch(
+      addApiError({
+        id: `${Date.now()}-${Math.random()}`,
+        message,
+        url,
+        status: result.error.status,
+      }),
+    )
   }
 
   return result

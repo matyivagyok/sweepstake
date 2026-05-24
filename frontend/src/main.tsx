@@ -15,11 +15,22 @@ import './index.css'
       if (config.sentry_dsn) {
         Sentry.init({
           dsn: config.sentry_dsn,
+          environment: "frontend",
+          release: config.app_version || undefined,
           integrations: [
             Sentry.browserTracingIntegration(),
+            Sentry.browserProfilingIntegration(),
+            Sentry.replayIntegration({
+                // Additional SDK configuration goes in here, for example:
+                maskAllText: true,
+                blockAllMedia: true,
+            }),
             Sentry.feedbackIntegration({ autoInject: false }),
           ],
-          tracesSampleRate: 0.1,
+          sendDefaultPii: false,
+          tracesSampleRate: 0.25,
+          replaysSessionSampleRate: 0.05,
+          replaysOnErrorSampleRate: 1.0,
         })
       }
     }

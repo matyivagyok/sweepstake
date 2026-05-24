@@ -3,65 +3,22 @@
     "configurations": [
 
         {
-            "name": "Debugger FastAPI",
-            "type": "debugpy",
+            "name": "Setup Dev Environment (Mac)",
+            "type": "node",
             "request": "launch",
-            "module": "uvicorn",
-            "args": [
-                "src.main:app",
-                "--reload",
-                "--port", "8888"
+            "runtimeExecutable": "/bin/bash",
+            "runtimeArgs": [
+                "${workspaceFolder}/.vscode/setup-dev.sh",
+                "${workspaceFolder}"
             ],
-            "cwd": "${workspaceFolder}/backend",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/backend",
-                "SERVER_HTTPS_AUTH_ONLY": "false"
-            },
-            "jinja": true,
-            "preLaunchTask": "start-postgres",
-            "postDebugTask": "stop-postgres"
-        },
-
-        {
-            "name": "Run FastAPI",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/backend/src/main.py",
-            "cwd": "${workspaceFolder}/backend",
-            "console": "integratedTerminal",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/backend",
-                "SERVER_HTTPS_AUTH_ONLY": "false"
-            },
-            "preLaunchTask": "start-postgres",
-            "postDebugTask": "stop-postgres"
-        },
-
-        {
-            "name": "Debugger FastAPI - Load Test Data",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "uvicorn",
-            "args": [
-                "src.main:app",
-                "--reload",
-                "--port", "8888"
-            ],
-            "cwd": "${workspaceFolder}/backend",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/backend",
-                "SERVER_LOAD_TEST_DATA": "true",
-                "SERVER_HTTPS_AUTH_ONLY": "false"
-            },
-            "jinja": true,
-            "preLaunchTask": "start-postgres",
-            "postDebugTask": "stop-postgres"
+            "console": "integratedTerminal"
         },
 
         {
             "name": "Run All Tests",
             "type": "debugpy",
             "request": "launch",
+            "python": "${workspaceFolder}/backend/.venv/bin/python",
             "module": "pytest",
             "args": ["tests/", "-v", "--no-header"],
             "cwd": "${workspaceFolder}/backend",
@@ -73,15 +30,48 @@
         },
 
         {
-            "name": "Run Import Tournament",
+            "name": "Run FastAPI Backend",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/backend/src/api_football_data_org/import_tournament.py",
+            "python": "${workspaceFolder}/backend/.venv/bin/python",
+            "module": "uvicorn",
+            "args": [
+                "src.main:app",
+                "--reload",
+                "--port", "8888"
+            ],
             "cwd": "${workspaceFolder}/backend",
-            "console": "integratedTerminal",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/backend"
-            }
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "SERVER_HTTPS_AUTH_ONLY": "false",
+                "SERVER_DATABASE_URL": "postgresql+asyncpg://postgres:postgres@localhost:5432/sweepstake",
+            },
+            "jinja": true,
+            "preLaunchTask": "start-postgres",
+            "postDebugTask": "stop-postgres"
+        },
+
+        {
+            "name": "Run FastAPI Backend (with Test Data)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/backend/.venv/bin/python",
+            "module": "uvicorn",
+            "args": [
+                "src.main:app",
+                "--reload",
+                "--port", "8888"
+            ],
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "SERVER_LOAD_TEST_DATA": "true",
+                "SERVER_HTTPS_AUTH_ONLY": "false",
+                "SERVER_DATABASE_URL": "postgresql+asyncpg://postgres:postgres@localhost:5432/sweepstake",
+            },
+            "jinja": true,
+            "preLaunchTask": "start-postgres",
+            "postDebugTask": "stop-postgres"
         },
 
         {
@@ -100,7 +90,20 @@
         },
 
         {
-            "name": "Build & Run Docker Container",
+            "name": "Build & Run Docker Container w/ SQLite (Demo Mode)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "/bin/bash",
+            "runtimeArgs": [
+                "-c",
+                "docker build -t sweepstake-demo . && docker run --rm -p 80:80 -e DEMO_MODE=true --name sweepstake-demo sweepstake-demo"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+
+        {
+            "name": "Build & Run Docker Container w/ Postgres (Prod Mode)",
             "type": "node",       // or python, go, etc.
             "request": "attach",
             "port": 9229,

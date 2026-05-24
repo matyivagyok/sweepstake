@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { ModalShell, ModalBody } from '../modals/base'
+import { useGetConfigQuery } from '../api/configApi'
 
 type ModalType = 'credits' | 'privacy' | null
 
 export function Footer() {
   const [open, setOpen] = useState<ModalType>(null)
+  const { data: config } = useGetConfigQuery()
 
   return (
     <>
@@ -26,7 +28,7 @@ export function Footer() {
         <a
           href="https://github.com/vanalmsick/sweepstake"
           target="_blank"
-          rel="noopener noreferrer"
+          rel="noopener"
           className="hover:text-white transition-colors"
         >
           Open Source Project
@@ -43,7 +45,7 @@ export function Footer() {
                 <a
                   href="https://github.com/vanalmsick/sweepstake"
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   github.com/vanalmsick/sweepstake
@@ -93,22 +95,24 @@ export function Footer() {
               containing your user data for a few more weeks until the retention
               period is exceeded.
             </p>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-              <a
-                href="https://sentry.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Sentry.io
-              </a>{' '}
-              error and performance monitoring is enabled. In line with EU GDPR,
-              errors are reported anonymised (no personally identifiable
-              information) to the administrator, along with basic performance
-              statistics (e.g. loading speed) for approximately 25&nbsp;% of
-              sessions to detect malfunctions. Please see Sentry.io's data
-              privacy policy for details.
-            </p>
+            {config?.sentry_dsn && (
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                <a
+                  href="https://sentry.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Sentry.io
+                </a>{' '}
+                error and performance monitoring is enabled. In line with EU GDPR,
+                errors are reported anonymised (no personally identifiable
+                information) to the administrator, along with basic performance
+                statistics (e.g. loading speed) for approximately 25&nbsp;% of
+                sessions to detect malfunctions. Please see Sentry.io's data
+                privacy policy for details.
+              </p>
+            )}
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
               No user statistics or other analytics are collected by the website
               itself. The data you see when using the app is the data that is

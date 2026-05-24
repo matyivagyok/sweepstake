@@ -55,5 +55,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USER }}/sweepstake:latest
             ${{ secrets.DOCKER_USER }}/sweepstake:${{ needs.autotag.outputs.tag }}
+          build-args: |
+            APP_VERSION=${{ needs.autotag.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

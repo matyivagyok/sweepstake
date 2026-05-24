@@ -56,9 +56,12 @@ RUN apt-get update \
 
 # Copy the virtualenv built in Stage 2
 COPY --from=py-deps /venv /venv
+ARG APP_VERSION=""
 ENV PATH="/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    APP_VERSION=$APP_VERSION \
+    GUNICORN_WORKERS=2
 
 # Copy nginx and supervisord configuration
 COPY nginx.conf /etc/nginx/nginx.conf

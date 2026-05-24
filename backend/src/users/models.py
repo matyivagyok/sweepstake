@@ -3,8 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, ClassVar, List, TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime
-from sqlalchemy.sql import func
+from sqlalchemy import Column, DateTime, text
 from sqlmodel import SQLModel, Field
 from sqlalchemy.orm import relationship as sa_relationship
 from pydantic import EmailStr
@@ -47,11 +46,11 @@ class User(SQLModel, table=True):
     is_active: bool = Field(default=True, nullable=False, description="User account status")
     is_superuser: bool = Field(default=False, nullable=False, description="Superuser privileges flag")
     created_at: datetime = Field(
-        sa_column=Column(DateTime, server_default=func.now(), nullable=False),
+        sa_column=Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), nullable=False),
         description="Account creation timestamp"
     )
     updated_at: datetime = Field(
-        sa_column=Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False),
+        sa_column=Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=datetime.utcnow, nullable=False),
         description="Last update timestamp"
     )
     password_reset_token: Optional[str] = Field(default=None, nullable=True, description="Single-use password reset token (contains embedded expiry)")

@@ -1,4 +1,5 @@
 import logging
+import sentry_sdk
 
 logger = logging.getLogger("predictions.scoring")
 """Point-calculation logic for predictions.
@@ -35,43 +36,45 @@ async def recalculate_tournament_points(db: AsyncSession, tournament_id: int) ->
     - If first_place_team_id, second_place_team_id, and third_place_team_id are all NULL
       the results are not yet known; set points_earned to NULL.
     """
-    tournament = await db.get(Tournament, tournament_id)
-    if tournament is None:
-        return
+    with sentry_sdk.start_span(op="scoring.recalculate_tournament_points", name=f"tournament_id={tournament_id}") as span:
+        tournament = await db.get(Tournament, tournament_id)
+        if tournament is None:
+            return
 
-    results_known = any(
-        tid is not None
-        for tid in (
-            tournament.first_place_team_id,
-            tournament.second_place_team_id,
-            tournament.third_place_team_id,
+        results_known = any(
+            tid is not None
+            for tid in (
+                tournament.first_place_team_id,
+                tournament.second_place_team_id,
+                tournament.third_place_team_id,
+            )
         )
-    )
 
-    predictions_result = await db.execute(
-        select(PredictTournament).where(PredictTournament.tournament_id == tournament_id)
-    )
-    predictions = predictions_result.scalars().all()
+        predictions_result = await db.execute(
+            select(PredictTournament).where(PredictTournament.tournament_id == tournament_id)
+        )
+        predictions = list(predictions_result.scalars().all())
+        span.set_data("items_count", len(predictions))
 
-    for prediction in predictions:
-        if not results_known:
-            prediction.points_earned = None
-        elif prediction.winner_team_id is None:
-            prediction.points_earned = 0
-        elif prediction.winner_team_id == tournament.first_place_team_id:
-            prediction.points_earned = tournament.first_place_points or 0
-        elif prediction.winner_team_id == tournament.second_place_team_id:
-            prediction.points_earned = tournament.second_place_points or 0
-        elif (
-            tournament.third_place_team_id is not None
-            and prediction.winner_team_id == tournament.third_place_team_id
-        ):
-            prediction.points_earned = tournament.third_place_points or 0
-        else:
-            prediction.points_earned = 0
+        for prediction in predictions:
+            if not results_known:
+                prediction.points_earned = None
+            elif prediction.winner_team_id is None:
+                prediction.points_earned = 0
+            elif prediction.winner_team_id == tournament.first_place_team_id:
+                prediction.points_earned = tournament.first_place_points or 0
+            elif prediction.winner_team_id == tournament.second_place_team_id:
+                prediction.points_earned = tournament.second_place_points or 0
+            elif (
+                tournament.third_place_team_id is not None
+                and prediction.winner_team_id == tournament.third_place_team_id
+            ):
+                prediction.points_earned = tournament.third_place_points or 0
+            else:
+                prediction.points_earned = 0
 
-    await db.flush()
-    logger.info(f"Recalculated tournament prediction points for tournament_id=%s", tournament_id)
+        await db.flush()
+        logger.info(f"Recalculated tournament prediction points for tournament_id=%s", tournament_id)
 
 
 # ---------------------------------------------------------------------------
@@ -120,45 +123,50 @@ def _compute_match_points(
 
 async def recalculate_match_points(db: AsyncSession, match_id: int) -> None:
     """Recalculate points_earned for every PredictMatch row for a single match."""
-    match = await db.get(Match, match_id)
-    if match is None:
-        return
-    tournament = await db.get(Tournament, match.tournament_id)
-    if tournament is None:
-        return
+    with sentry_sdk.start_span(op="scoring.recalculate_match_points", name=f"match_id={match_id}") as span:
+        match = await db.get(Match, match_id)
+        if match is None:
+            return
+        tournament = await db.get(Tournament, match.tournament_id)
+        if tournament is None:
+            return
 
-    predictions_result = await db.execute(
-        select(PredictMatch).where(PredictMatch.match_id == match_id)
-    )
+        predictions_result = await db.execute(
+            select(PredictMatch).where(PredictMatch.match_id == match_id)
+        )
+        preds = list(predictions_result.scalars().all())
+        span.set_data("items_count", len(preds))
 
+        for pred in preds:
+            pred.points_earned = _compute_match_points(pred, match, tournament)
 
-    for pred in predictions_result.scalars().all():
-        pred.points_earned = _compute_match_points(pred, match, tournament)
-
-    await db.flush()
-    logger.info(f"Recalculated match prediction points for match_id=%s", match_id)
+        await db.flush()
+        logger.info(f"Recalculated match prediction points for match_id=%s", match_id)
 
 
 async def recalculate_all_match_points_for_tournament(db: AsyncSession, tournament_id: int) -> None:
     """Recalculate points_earned for every PredictMatch row in a tournament."""
-    tournament = await db.get(Tournament, tournament_id)
-    if tournament is None:
-        return
+    with sentry_sdk.start_span(op="scoring.recalculate_all_match_points", name=f"tournament_id={tournament_id}") as span:
+        tournament = await db.get(Tournament, tournament_id)
+        if tournament is None:
+            return
 
-    matches_result = await db.execute(
-        select(Match).where(Match.tournament_id == tournament_id)
-    )
-
-
-    for match in matches_result.scalars().all():
-        preds_result = await db.execute(
-            select(PredictMatch).where(PredictMatch.match_id == match.id)
+        matches_result = await db.execute(
+            select(Match).where(Match.tournament_id == tournament_id)
         )
-        for pred in preds_result.scalars().all():
-            pred.points_earned = _compute_match_points(pred, match, tournament)
+        total = 0
+        for match in matches_result.scalars().all():
+            preds_result = await db.execute(
+                select(PredictMatch).where(PredictMatch.match_id == match.id)
+            )
+            preds = list(preds_result.scalars().all())
+            total += len(preds)
+            for pred in preds:
+                pred.points_earned = _compute_match_points(pred, match, tournament)
 
-    await db.flush()
-    logger.info(f"Recalculated all match prediction points for tournament_id=%s", tournament_id)
+        span.set_data("items_count", total)
+        await db.flush()
+        logger.info(f"Recalculated all match prediction points for tournament_id=%s", tournament_id)
 
 
 # ---------------------------------------------------------------------------
@@ -186,45 +194,50 @@ def _compute_group_points(
 
 async def recalculate_group_points(db: AsyncSession, group_id: int) -> None:
     """Recalculate points_earned for every PredictGroup row for a single group."""
-    group = await db.get(Group, group_id)
-    if group is None:
-        return
-    tournament = await db.get(Tournament, group.tournament_id)
-    if tournament is None:
-        return
+    with sentry_sdk.start_span(op="scoring.recalculate_group_points", name=f"group_id={group_id}") as span:
+        group = await db.get(Group, group_id)
+        if group is None:
+            return
+        tournament = await db.get(Tournament, group.tournament_id)
+        if tournament is None:
+            return
 
-    preds_result = await db.execute(
-        select(PredictGroup).where(PredictGroup.group_id == group_id)
-    )
+        preds_result = await db.execute(
+            select(PredictGroup).where(PredictGroup.group_id == group_id)
+        )
+        preds = list(preds_result.scalars().all())
+        span.set_data("items_count", len(preds))
 
+        for pred in preds:
+            pred.points_earned = _compute_group_points(pred, group, tournament)
 
-    for pred in preds_result.scalars().all():
-        pred.points_earned = _compute_group_points(pred, group, tournament)
-
-    await db.flush()
-    logger.info(f"Recalculated group prediction points for group_id=%s", group_id)
+        await db.flush()
+        logger.info(f"Recalculated group prediction points for group_id=%s", group_id)
 
 
 async def recalculate_all_group_points_for_tournament(db: AsyncSession, tournament_id: int) -> None:
     """Recalculate points_earned for every PredictGroup row in a tournament."""
-    tournament = await db.get(Tournament, tournament_id)
-    if tournament is None:
-        return
+    with sentry_sdk.start_span(op="scoring.recalculate_all_group_points", name=f"tournament_id={tournament_id}") as span:
+        tournament = await db.get(Tournament, tournament_id)
+        if tournament is None:
+            return
 
-    groups_result = await db.execute(
-        select(Group).where(Group.tournament_id == tournament_id)
-    )
-
-
-    for group in groups_result.scalars().all():
-        preds_result = await db.execute(
-            select(PredictGroup).where(PredictGroup.group_id == group.id)
+        groups_result = await db.execute(
+            select(Group).where(Group.tournament_id == tournament_id)
         )
-        for pred in preds_result.scalars().all():
-            pred.points_earned = _compute_group_points(pred, group, tournament)
+        total = 0
+        for group in groups_result.scalars().all():
+            preds_result = await db.execute(
+                select(PredictGroup).where(PredictGroup.group_id == group.id)
+            )
+            preds = list(preds_result.scalars().all())
+            total += len(preds)
+            for pred in preds:
+                pred.points_earned = _compute_group_points(pred, group, tournament)
 
-    await db.flush()
-    logger.info(f"Recalculated all group prediction points for tournament_id=%s", tournament_id)
+        span.set_data("items_count", total)
+        await db.flush()
+        logger.info(f"Recalculated all group prediction points for tournament_id=%s", tournament_id)
 
 
 # ---------------------------------------------------------------------------
@@ -252,45 +265,50 @@ def _compute_stage_points(
 
 async def recalculate_stage_points(db: AsyncSession, stage_id: int) -> None:
     """Recalculate points_earned for every PredictStage row for a single stage."""
-    stage = await db.get(Stage, stage_id)
-    if stage is None:
-        return
-    tournament = await db.get(Tournament, stage.tournament_id)
-    if tournament is None:
-        return
+    with sentry_sdk.start_span(op="scoring.recalculate_stage_points", name=f"stage_id={stage_id}") as span:
+        stage = await db.get(Stage, stage_id)
+        if stage is None:
+            return
+        tournament = await db.get(Tournament, stage.tournament_id)
+        if tournament is None:
+            return
 
-    preds_result = await db.execute(
-        select(PredictStage).where(PredictStage.stage_id == stage_id)
-    )
+        preds_result = await db.execute(
+            select(PredictStage).where(PredictStage.stage_id == stage_id)
+        )
+        preds = list(preds_result.scalars().all())
+        span.set_data("items_count", len(preds))
 
+        for pred in preds:
+            pred.points_earned = _compute_stage_points(pred, stage, tournament)
 
-    for pred in preds_result.scalars().all():
-        pred.points_earned = _compute_stage_points(pred, stage, tournament)
-
-    await db.flush()
-    logger.info(f"Recalculated stage prediction points for stage_id=%s", stage_id)
+        await db.flush()
+        logger.info(f"Recalculated stage prediction points for stage_id=%s", stage_id)
 
 
 async def recalculate_all_stage_points_for_tournament(db: AsyncSession, tournament_id: int) -> None:
     """Recalculate points_earned for every PredictStage row in a tournament."""
-    tournament = await db.get(Tournament, tournament_id)
-    if tournament is None:
-        return
+    with sentry_sdk.start_span(op="scoring.recalculate_all_stage_points", name=f"tournament_id={tournament_id}") as span:
+        tournament = await db.get(Tournament, tournament_id)
+        if tournament is None:
+            return
 
-    stages_result = await db.execute(
-        select(Stage).where(Stage.tournament_id == tournament_id)
-    )
-
-
-    for stage in stages_result.scalars().all():
-        preds_result = await db.execute(
-            select(PredictStage).where(PredictStage.stage_id == stage.id)
+        stages_result = await db.execute(
+            select(Stage).where(Stage.tournament_id == tournament_id)
         )
-        for pred in preds_result.scalars().all():
-            pred.points_earned = _compute_stage_points(pred, stage, tournament)
+        total = 0
+        for stage in stages_result.scalars().all():
+            preds_result = await db.execute(
+                select(PredictStage).where(PredictStage.stage_id == stage.id)
+            )
+            preds = list(preds_result.scalars().all())
+            total += len(preds)
+            for pred in preds:
+                pred.points_earned = _compute_stage_points(pred, stage, tournament)
 
-    await db.flush()
-    logger.info(f"Recalculated all stage prediction points for tournament_id=%s", tournament_id)
+        span.set_data("items_count", total)
+        await db.flush()
+        logger.info(f"Recalculated all stage prediction points for tournament_id=%s", tournament_id)
 
 
 # ---------------------------------------------------------------------------
