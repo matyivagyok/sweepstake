@@ -8,15 +8,15 @@ from src.logging_config import get_logger
 logger = get_logger(__name__)
 
 DATABASE_URL = settings.database_url
+_IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 
 def ensure_database_exists(database_url: str) -> None:
     """Connect to the server-level database (postgres) and create the
-    target database if it doesn't exist.
-
-    This uses a synchronous SQLAlchemy engine because CREATE DATABASE cannot
-    run inside a transaction when using the async engine.
+    target database if it doesn't exist. No-op for SQLite.
     """
+    if _IS_SQLITE:
+        return
     try:
         url = make_url(database_url)
         dbname = url.database
@@ -49,18 +49,18 @@ def ensure_database_exists(database_url: str) -> None:
 ensure_database_exists(DATABASE_URL)
 
 _debug = settings.debug
-_pool_size = settings.db_pool_size
-_max_overflow = settings.db_max_overflow
-_pool_recycle = settings.db_pool_recycle
 
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=_debug,
-    pool_size=_pool_size,
-    max_overflow=_max_overflow,
-    pool_recycle=_pool_recycle,
-    pool_pre_ping=True,
-)
+if _IS_SQLITE:
+    engine = create_async_engine(DATABASE_URL, echo=_debug)
+else:
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=_debug,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+        pool_recycle=settings.db_pool_recycle,
+        pool_pre_ping=True,
+    )
 
 AsyncSessionLocal = async_sessionmaker(
     engine,

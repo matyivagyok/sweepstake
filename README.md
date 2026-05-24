@@ -34,12 +34,7 @@ Create a tournament or join one via an invite link. Make predictions on match sc
 ## Give it a quick try
 
 ```sh
-docker run -p 80:80 \
-  -e SERVER_HTTPS_AUTH_ONLY=false \
-  -e SERVER_LOAD_TEST_DATA=true \
-  -e SERVER_DATABASE_URL=sqlite+aiosqlite:////tmp/sweepstake.db \
-  -e SERVER_SECRET_KEY=local-testing-only \
-  vanalmsick/sweepstake
+docker run -p 80:80 -e DEMO_MODE=true vanalmsick/sweepstake
 ```
 
 > **Note:** SQLite is fine for a quick try. Use PostgreSQL for anything persistent.

@@ -18,7 +18,14 @@ from src.config import settings
 if settings.sentry_dsn:
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
-        traces_sample_rate=0.1,
+        release=settings.app_version or None,
+        environment="backend",
+        send_default_pii=False,  # No PII is sent to Sentry.io
+        sample_rate=1.0,  # 100% of errors are sent to Sentry.io
+        enable_tracing=True,  # Performance monitoring
+        traces_sample_rate=0.25,  # 25% of transcations are perfromance monitored
+        profiles_sample_rate=1.0,  # 100% of these monitored transactions will have profile
+        enable_logs=True,  # Capture logs
     )
 from src.logging_config import (
     setup_logging, get_access_logger, disable_uvicorn_access_log, color_status,
@@ -164,14 +171,53 @@ def _autogenerate_if_needed(cfg: AlembicConfig) -> bool:
     return created["value"]
 
 
+def _clear_alembic_version(conn) -> None:
+    """Reset the alembic_version table after a broken migration chain is detected.
+
+    The chain breaks when migration files are lost (e.g. empty Docker volume)
+    while the DB still records their revision IDs.  Clearing the table lets the
+    autogenerate step regenerate a single baseline migration from the current
+    schema — tables already in place are left untouched.
+    """
+    logger.warning(
+        "Broken migration chain detected (revision files missing from volume). "
+        "Clearing alembic_version and regenerating baseline from current schema..."
+    )
+    conn.execute(text("DELETE FROM alembic_version"))
+    conn.commit()
+
+
 def run_alembic_startup_workflow() -> None:
     cfg = _build_alembic_config()
+
+    url = make_url(settings.database_url)
+    is_sqlite = url.drivername.split("+")[0] == "sqlite"
+
+    if is_sqlite:
+        # SQLite has no advisory locks and single-writer semantics, so run migrations directly.
+        logger.info("Running Alembic upgrade to heads...")
+        try:
+            command.upgrade(cfg, "heads")
+        except CommandError as exc:
+            if "Can't locate revision" not in str(exc):
+                raise
+            sync_url = url.set(drivername="sqlite")
+            sync_engine = create_engine(sync_url.render_as_string(hide_password=False))
+            with sync_engine.connect() as conn:
+                _clear_alembic_version(conn)
+            sync_engine.dispose()
+        logger.info("Checking for schema changes and autogenerating migration if needed...")
+        created = _autogenerate_if_needed(cfg)
+        if created:
+            logger.info("New migration was generated. Applying latest migrations...")
+            command.upgrade(cfg, "heads")
+        logger.info("Alembic startup migration workflow complete.")
+        return
 
     # Build a synchronous database URL (strip the async driver suffix) so we
     # can hold a PostgreSQL session-level advisory lock for the duration of
     # the migration.  This prevents multiple gunicorn workers from racing to
     # create the same schema objects (e.g. enum types) on a fresh database.
-    url = make_url(settings.database_url)
     sync_driver = url.drivername.split("+")[0]  # "postgresql+asyncpg" → "postgresql"
     sync_url = url.set(drivername=sync_driver)
     # render_as_string(hide_password=False) is required — str(URL) redacts the
@@ -187,7 +233,12 @@ def run_alembic_startup_workflow() -> None:
         conn.execute(text(f"SELECT pg_advisory_lock({ADVISORY_LOCK_KEY})"))
         try:
             logger.info("Running Alembic upgrade to heads...")
-            command.upgrade(cfg, "heads")
+            try:
+                command.upgrade(cfg, "heads")
+            except CommandError as exc:
+                if "Can't locate revision" not in str(exc):
+                    raise
+                _clear_alembic_version(conn)
 
             logger.info("Checking for schema changes and autogenerating migration if needed...")
             created = _autogenerate_if_needed(cfg)
@@ -317,7 +368,7 @@ def get_config():
     (e.g. the Sentry DSN injected as a container env var).
     Empty strings mean the feature is disabled.
     """
-    return {"sentry_dsn": settings.sentry_dsn}
+    return {"sentry_dsn": settings.sentry_dsn, "app_version": settings.app_version, "demo_mode": settings.demo_mode}
 
 # include routers
 app.include_router(auth_router)

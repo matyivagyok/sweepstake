@@ -60,7 +60,6 @@ export function TournamentPageHeader({
   const paid = myEntry?.stake_paid ?? false
 
   const [copied, setCopied] = useState(false)
-
   function handleCopyJoinCode() {
     if (!tournament.join_code) return
     const base = window.location.origin
@@ -75,25 +74,70 @@ export function TournamentPageHeader({
     })
   }
 
+  const stakeBadge = tournament.stake ? (
+    <span className={[
+      'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap',
+      paid
+        ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
+        : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+    ].join(' ')}>
+      {paid ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
+      {paid ? 'Stake paid' : 'Stake unpaid'}
+    </span>
+  ) : null
+
+  const joinCodeEl = tournament.join_code ? (
+    <p className="text-sm text-gray-500 dark:text-gray-400">
+      Join code:{' '}
+      <span
+        onClick={handleCopyJoinCode}
+        className="relative group cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition"
+      >
+        {tournament.join_code}
+        <span className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition pointer-events-none">
+          {copied ? 'Copied!' : 'Click to copy'}
+        </span>
+      </span>
+    </p>
+  ) : null
+
   return (
     <>
-      <div className="flex items-center justify-between gap-4">
+      <div>
+      {/* Mobile layout (hidden on sm+) */}
+      <div className="flex flex-col gap-1.5 sm:hidden">
+        {/* Row 1: back + edit */}
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            to="/overview"
+            className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
+          >
+            ← Back to Overview
+          </Link>
+          {rightActions && <div className="flex items-center gap-2">{rightActions}</div>}
+        </div>
+        {/* Row 2: tournament name */}
+        <h1 className="text-2xl font-bold">{tournament.name}</h1>
+        {/* Row 3: join code (left) + stake badge (right) */}
+        {(joinCodeEl || stakeBadge) && (
+          <div className="flex items-center justify-between gap-2">
+            {joinCodeEl ?? <span />}
+            {stakeBadge}
+          </div>
+        )}
+        {/* Row 4: stake text */}
+        {tournament.stake && (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            <StakeText text={tournament.stake} />
+          </p>
+        )}
+      </div>
+
+      {/* Desktop layout (hidden below sm) */}
+      <div className="hidden sm:flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{tournament.name}</h1>
-          {tournament.join_code && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Join code:{' '}
-              <span
-                onClick={handleCopyJoinCode}
-                className="relative group cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition"
-              >
-                {tournament.join_code}
-                <span className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition pointer-events-none">
-                  {copied ? 'Copied!' : 'Click to copy'}
-                </span>
-              </span>
-            </p>
-          )}
+          {joinCodeEl && <div className="mt-1">{joinCodeEl}</div>}
           {tournament.stake && (
             <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
               <StakeText text={tournament.stake} />
@@ -110,21 +154,12 @@ export function TournamentPageHeader({
             </Link>
             {rightActions}
           </div>
-          {tournament.stake && (
-            <span className={[
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
-              paid
-                ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
-                : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
-            ].join(' ')}>
-              {paid ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
-              {paid ? 'Stake paid' : 'Stake unpaid'}
-            </span>
-          )}
+          {stakeBadge}
         </div>
       </div>
+      </div>
 
-      <nav className="flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 p-1 w-fit">
+      <nav className="flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 p-1 w-fit max-w-full overflow-x-auto">
         {navItems.map(({ label, to, end, special }) => (
           <NavLink
             key={label}

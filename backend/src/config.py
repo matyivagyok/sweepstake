@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     port: int = 8888
     debug: bool = False
     secret_key: str = "dev-secret-key-for-testing-change-in-production"
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/sweepstake"
+    database_url: str = f"sqlite+aiosqlite:///{_DATA_DIR}/sweepstake.db"
     access_token_expire_minutes: int = 5
     refresh_token_expire_days: int = 7
     password_reset_expire_minutes: int = 30
@@ -75,6 +75,14 @@ class Settings(BaseSettings):
             "football_data_org_api_tier",
         ),
     )
+    demo_mode: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "DEMO_MODE",
+            "SERVER_DEMO_MODE",
+            "demo_mode",
+        ),
+    )
     load_test_data: bool = False
     root_path: str = ""
     https_auth_only: bool = True
@@ -86,6 +94,21 @@ class Settings(BaseSettings):
             "sentry_dsn",
         ),
     )
+    app_version: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "APP_VERSION",
+            "SERVER_APP_VERSION",
+            "app_version",
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _apply_demo_mode(self) -> Settings:
+        if self.demo_mode:
+            self.load_test_data = True
+            self.https_auth_only = False
+        return self
 
     @classmethod
     def settings_customise_sources(
@@ -114,6 +137,12 @@ def validate_secrets() -> None:
         print(
             "WARNING: SECRET_KEY not set or is the default dev value. "
             "Set SERVER_SECRET_KEY environment variable."
+        )
+    if settings.database_url.startswith("sqlite"):
+        print(
+            "WARNING: Using SQLite database. "
+            "PostgreSQL is recommended for production use. "
+            "Set the SERVER_DATABASE_URL environment variable to use PostgreSQL."
         )
 
 

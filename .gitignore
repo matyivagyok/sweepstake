@@ -50,3 +50,6 @@ ENV/
 # Cache
 .cache/
 *.log
+
+# Custom
+*.nosync

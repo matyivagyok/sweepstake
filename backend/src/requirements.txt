@@ -3,6 +3,7 @@ uvicorn
 sqlmodel
 psycopg2-binary
 asyncpg
+aiosqlite
 greenlet
 passlib[argon2]
 python-jose[cryptography]

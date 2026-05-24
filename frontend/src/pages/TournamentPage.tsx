@@ -111,7 +111,7 @@ export function TournamentPage() {
     { label: '👥 Correct group winner', points: tournament.group_winner_points },
     { label: '🏆 Correct stage winner', points: tournament.stage_winner_points },
     { label: '⚽ Correct match winner', points: tournament.match_winner_points },
-    { label: '🎯 Correct exact score', points: tournament.match_score_points },
+    { label: '🎯 Exact match score', points: tournament.match_score_points },
   ].filter((r) => r.points != null && r.points !== 0)
 
   const cutoff = new Date(Date.now() - 36 * 60 * 60 * 1000)
@@ -192,8 +192,8 @@ export function TournamentPage() {
 
         {/* Matches */}
         <section>
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-semibold">Matches</h2>
               {isAdmin && (
                 <button
@@ -384,6 +384,7 @@ export function TournamentPage() {
                             src={match.home_team.image_url}
                             alt={match.home_team.name}
                             decoding="async"
+                            referrerPolicy="no-referrer"
                             className="h-7 w-7 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                           />
                         ) : (
@@ -411,6 +412,7 @@ export function TournamentPage() {
                             src={match.away_team.image_url}
                             alt={match.away_team.name}
                             decoding="async"
+                            referrerPolicy="no-referrer"
                             className="h-7 w-7 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                           />
                         ) : (

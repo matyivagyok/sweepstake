@@ -137,7 +137,7 @@ function TeamSelect({
               : 'border-dashed border-amber-300/60 dark:border-amber-700/40 bg-amber-100/40 dark:bg-amber-900/10'
           }`}>
             {selectedTeam?.image_url ? (
-              <img src={selectedTeam.image_url} alt={selectedTeam.name} decoding="async" className="h-full w-full object-cover" />
+              <img src={selectedTeam.image_url} alt={selectedTeam.name} decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
             ) : (
               <span className="text-2xl opacity-20">🏆</span>
             )}
@@ -173,7 +173,7 @@ function TeamSelect({
                   <div key={place} className="flex items-center gap-1">
                     <span className="text-xs italic text-amber-700/40 dark:text-amber-400/40 whitespace-nowrap">{place}</span>
                     {team.image_url && (
-                      <img src={team.image_url} alt={team.name} decoding="async" className="h-3.5 w-3.5 rounded-full object-cover border border-amber-200 dark:border-amber-700/60 flex-shrink-0" />
+                      <img src={team.image_url} alt={team.name} decoding="async" referrerPolicy="no-referrer" className="h-3.5 w-3.5 rounded-full object-cover border border-amber-200 dark:border-amber-700/60 flex-shrink-0" />
                     )}
                     <span className="text-xs italic text-amber-700/50 dark:text-amber-400/50 whitespace-nowrap">{team.name}</span>
                   </div>
@@ -208,7 +208,7 @@ function TeamSelect({
           {winnerTeam && (
             <div className="flex items-center gap-1">
               {winnerTeam.image_url && (
-                <img src={winnerTeam.image_url} alt={winnerTeam.name} decoding="async" className="h-3.5 w-3.5 rounded-full object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0" />
+                <img src={winnerTeam.image_url} alt={winnerTeam.name} decoding="async" referrerPolicy="no-referrer" className="h-3.5 w-3.5 rounded-full object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0" />
               )}
               <span className="text-xs italic text-gray-400 dark:text-gray-500 whitespace-nowrap">{winnerTeam.iso_code ?? winnerTeam.name}</span>
             </div>
@@ -241,7 +241,7 @@ function TeamSelect({
           <div className="flex items-center gap-2.5">
             {selectedTeam?.image_url ? (
               <img src={selectedTeam.image_url} alt={selectedTeam.name}
-                decoding="async" className="h-8 w-8 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
+                decoding="async" referrerPolicy="no-referrer" className="h-8 w-8 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
             ) : (
               <span className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-700 border border-dashed border-gray-300 dark:border-gray-600 inline-block" />
             )}
@@ -256,7 +256,7 @@ function TeamSelect({
             <div className="flex items-center gap-2">
               {selectedTeam?.image_url ? (
                 <img src={selectedTeam.image_url} alt={selectedTeam.name}
-                  decoding="async" className="h-7 w-7 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
+                  decoding="async" referrerPolicy="no-referrer" className="h-7 w-7 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
               ) : (
                 <span className="h-7 w-7 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-700 border border-dashed border-gray-200 dark:border-gray-600 inline-block" />
               )}
@@ -715,7 +715,7 @@ export function PredictionsPage() {
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
                   {stage}
                 </h3>
-                <ul className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto_1fr_auto] gap-x-2 gap-y-2">
+                <ul className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_1fr_auto] gap-x-2 gap-y-2">
                   {stageMatches.map((match) => {
                     const matchStartMs = parseServerDt(match.start_datetime).getTime()
                     const isLive = matchStartMs <= renderNowMs && renderNowMs <= matchStartMs + 100 * 60 * 1000
@@ -727,7 +727,7 @@ export function PredictionsPage() {
                     return (
                       <Fragment key={match.id}>
                         {showNow && (
-                          <li className="sm:col-span-5 flex items-center gap-2 pointer-events-none select-none">
+                          <li className="md:col-span-5 flex items-center gap-2 pointer-events-none select-none">
                             <span className="relative flex h-3 w-3 flex-shrink-0">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                               <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
@@ -746,7 +746,7 @@ export function PredictionsPage() {
                         )}
                         <li
                           className={[
-                            'relative sm:col-span-5 grid grid-cols-[1fr_auto_1fr] sm:grid-cols-subgrid items-center gap-x-2 gap-y-1 rounded-lg border bg-white dark:bg-gray-800 pl-4 pr-10 sm:pr-4 py-3',
+                            'relative md:col-span-5 grid grid-cols-[1fr_auto_1fr] md:grid-cols-subgrid items-center gap-x-2 gap-y-1 rounded-lg border bg-white dark:bg-gray-800 pl-4 pr-10 md:pr-4 py-3',
                             isLive ? 'animate-live-border' : 'border-gray-200 dark:border-gray-700',
                             matchStartMs <= renderNowMs ? 'cursor-pointer' : '',
                           ].join(' ')}
@@ -756,7 +756,7 @@ export function PredictionsPage() {
                             return next
                           }, { replace: true }) : undefined}
                         >
-                          <span className="row-start-1 col-start-1 sm:row-auto sm:col-auto text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                          <span className="row-start-1 col-start-1 md:row-auto md:col-auto text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                             {isLive ? (
                               <span className="flex items-center gap-1.5">
                                 <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
@@ -775,18 +775,19 @@ export function PredictionsPage() {
                               formatDateTime(match.start_datetime)
                             )}
                           </span>
-                          <div className="row-start-2 col-start-1 sm:row-auto sm:col-auto flex items-center justify-end gap-2 px-2">
+                          <div className="row-start-2 col-start-1 md:row-auto md:col-auto flex items-center justify-end gap-2 px-2">
                             <span className="text-sm text-right text-gray-900 dark:text-gray-100 truncate">
-                              {match.home_team?.name ?? '—'}
+                              <span className="md:hidden">{match.home_team?.iso_code ?? match.home_team?.name ?? '—'}</span>
+                              <span className="hidden md:inline">{match.home_team?.name ?? '—'}</span>
                             </span>
                             {match.home_team?.image_url ? (
                               <img src={match.home_team.image_url} alt={match.home_team.name}
-                                decoding="async" className="h-7 w-7 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
+                                decoding="async" referrerPolicy="no-referrer" className="h-7 w-7 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
                             ) : (
                               <span className="h-7 w-7 flex-shrink-0 rounded-full bg-gray-200 dark:bg-gray-700 inline-block" />
                             )}
                           </div>
-                          <div className="row-start-2 col-start-2 sm:row-auto sm:col-auto flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="row-start-2 col-start-2 md:row-auto md:col-auto flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
                             <ScoreInput
                               matchId={match.id}
                               prediction={predictionMap.get(match.id)}
@@ -797,24 +798,33 @@ export function PredictionsPage() {
                               onBeforeSave={adminEditingOther ? confirmAdminEdit : undefined}
                             />
                           </div>
-                          <div className="row-start-2 col-start-3 sm:row-auto sm:col-auto flex items-center justify-start gap-2 px-2">
+                          <div className="row-start-2 col-start-3 md:row-auto md:col-auto flex items-center justify-start gap-2 px-2">
                             {match.away_team?.image_url ? (
                               <img src={match.away_team.image_url} alt={match.away_team.name}
-                                decoding="async" className="h-7 w-7 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
+                                decoding="async" referrerPolicy="no-referrer" className="h-7 w-7 flex-shrink-0 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
                             ) : (
                               <span className="h-7 w-7 flex-shrink-0 rounded-full bg-gray-200 dark:bg-gray-700 inline-block" />
                             )}
                             <span className="text-sm text-left text-gray-900 dark:text-gray-100 truncate">
-                              {match.away_team?.name ?? '—'}
+                              <span className="md:hidden">{match.away_team?.iso_code ?? match.away_team?.name ?? '—'}</span>
+                              <span className="hidden md:inline">{match.away_team?.name ?? '—'}</span>
                             </span>
                           </div>
-                          <div className="row-start-1 col-start-3 sm:row-auto sm:col-auto justify-self-end flex items-center gap-1.5">
+                          {/* Mobile-only: actual match score centred in row 1 between date and status */}
+                          {match.home_goals != null && match.away_goals != null && (
+                            <div className="flex md:hidden row-start-1 col-start-2 justify-center items-center self-center">
+                              <span className="text-xs italic text-gray-400 dark:text-gray-500 whitespace-nowrap font-mono">
+                                (Match: {match.home_goals}-{match.away_goals})
+                              </span>
+                            </div>
+                          )}
+                          <div className="row-start-1 col-start-3 md:row-auto md:col-auto justify-self-end flex items-center gap-1.5">
                             <div className="flex flex-col items-end gap-0.5">
                               {(() => {
                                 const pred = predictionMap.get(match.id)
                                 const isPast = matchStartMs <= renderNowMs
                                 const actualScore = match.home_goals != null && match.away_goals != null ? (
-                                  <span className="text-xs italic text-gray-400 dark:text-gray-500 whitespace-nowrap font-mono">
+                                  <span className="hidden md:inline text-xs italic text-gray-400 dark:text-gray-500 whitespace-nowrap font-mono">
                                     (Match: {match.home_goals}-{match.away_goals})
                                   </span>
                                 ) : null
@@ -840,7 +850,7 @@ export function PredictionsPage() {
                                   }
                                   return (
                                     <>
-                                      <span className="text-xs italic text-gray-400 dark:text-gray-500 whitespace-nowrap"><span className="text-[0.8em]">❌</span> missed cutoff</span>
+                                      <span className="text-xs italic text-gray-400 dark:text-gray-500 whitespace-nowrap"><span className="text-[0.8em]">❌</span> <span className="md:hidden">missed</span><span className="hidden md:inline">missed cutoff</span></span>
                                       {actualScore}
                                     </>
                                   )
@@ -861,7 +871,7 @@ export function PredictionsPage() {
                                     return next
                                   }, { replace: true })
                                 }
-                                className="hidden sm:inline-flex text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition flex-shrink-0"
+                                className="hidden md:inline-flex text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition flex-shrink-0"
                                 aria-label="View match stats"
                               >
                                 <Search size={14} />
@@ -877,7 +887,7 @@ export function PredictionsPage() {
                                   return next
                                 }, { replace: true })
                               }
-                              className="sm:hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition"
+                              className="md:hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition"
                               aria-label="View match stats"
                             >
                               <Search size={14} />

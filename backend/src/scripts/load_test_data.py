@@ -2,7 +2,7 @@ import asyncio, datetime, random
 
 from sqlalchemy import text
 
-from src.database import AsyncSessionLocal
+from src.database import AsyncSessionLocal, _IS_SQLITE
 from src.users import crud as user_crud
 from src.users.models import UserCreate
 from src.logging_config import get_logger
@@ -25,7 +25,9 @@ async def load_test_data() -> None:
     async with AsyncSessionLocal() as db:
         # Advisory lock serialises this across multiple gunicorn workers so the
         # "user already exists" guard can't race between a check and the first commit.
-        await db.execute(text(f"SELECT pg_advisory_lock({_LOAD_TEST_DATA_LOCK_KEY})"))
+        # SQLite has single-writer semantics, so the lock is unnecessary there.
+        if not _IS_SQLITE:
+            await db.execute(text(f"SELECT pg_advisory_lock({_LOAD_TEST_DATA_LOCK_KEY})"))
         try:
             existing = await user_crud.get_user_by_email(db, "test@example.com")
             if existing is not None:
@@ -62,7 +64,7 @@ async def load_test_data() -> None:
             ]
             selected_match_datetime = matches[len(matches_with_teams) // 3].start_datetime
             datetime_offset = datetime.timedelta(days=(datetime.datetime.now(tz=selected_match_datetime.tzinfo) - selected_match_datetime).days)
-            now = datetime.datetime.now(tz=datetime.timezone.utc)
+            now = datetime.datetime.now(tz=selected_match_datetime.tzinfo)
             for match in matches:
                 match.start_datetime += datetime_offset
                 match.tv_channel = random.choice(["Channel A", "Channel B", "Channel C", None, ""])
@@ -119,7 +121,7 @@ async def load_test_data() -> None:
                         logger.info(f"Group prediction created for {u.email} group {group.id}: {group_team.name}")
 
                 for stage in stages:
-                    if random.choice([True, False]):
+                    if random.choice([True, True, True, False, False]):
                         stage_team = random.choice(teams)
                         await prediction_crud.upsert_predict_stage(
                             db,
@@ -129,7 +131,7 @@ async def load_test_data() -> None:
                         logger.info(f"Stage prediction created for {u.email} stage {stage.id}: {stage_team.name}")
 
                 for match in matches_with_teams:
-                    if random.choice([True, False]):
+                    if random.choice([True, True, True, False, False]):
                         await prediction_crud.upsert_predict_match(
                             db,
                             PredictMatchCreate(
@@ -144,6 +146,7 @@ async def load_test_data() -> None:
             await db.commit()
 
         finally:
-            await db.execute(text(f"SELECT pg_advisory_unlock({_LOAD_TEST_DATA_LOCK_KEY})"))
+            if not _IS_SQLITE:
+                await db.execute(text(f"SELECT pg_advisory_unlock({_LOAD_TEST_DATA_LOCK_KEY})"))
 
     
