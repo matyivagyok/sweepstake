@@ -65,9 +65,9 @@ export function TournamentPageHeader({
     const base = window.location.origin
     const text =
       `Hi, I am taking part in the "${tournament.name}" SweepStake.\n` +
-      `It would be even more fun if you'd join, too.\n` +
-      `Here is the link to join: ${base}?join=${tournament.join_code}\n` +
-      `Join code: ${tournament.join_code}`
+      `It would be even more fun if you'd join, too!\n\n` +
+      `Join code: ${tournament.join_code}\n` +
+      `Here is the link to join: ${base}?join=${tournament.join_code}\n`
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)

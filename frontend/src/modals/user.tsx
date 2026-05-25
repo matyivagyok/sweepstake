@@ -116,11 +116,22 @@ export function JoinTournamentModal({ onClose, initialCode }: { onClose: () => v
   const [joinCode, setJoinCode] = useState(initialCode ?? '')
   const [error, setError] = useState<string | null>(null)
 
+  const JOIN_CODE_RE = /^[A-Za-z]{0,8}\d{8}$/
+
+  function validateJoinCode(code: string): string | null {
+    if (!code) return 'Please enter a join code.'
+    if (code.length > 16) return 'Join code must be 16 characters or fewer.'
+    if (!JOIN_CODE_RE.test(code)) return 'Join code must be 0–8 letters followed by exactly 8 digits, with no spaces or special characters.'
+    return null
+  }
+
   async function handleJoin() {
-    if (!joinCode.trim()) return
+    const trimmed = joinCode.trim()
+    const validationError = validateJoinCode(trimmed)
+    if (validationError) { setError(validationError); return }
     setError(null)
     try {
-      const tournament = await joinTournament(joinCode.trim()).unwrap()
+      const tournament = await joinTournament(trimmed).unwrap()
       onClose()
       navigate(`/tournament/${tournament.id}?guide=participant`)
     } catch {
@@ -142,12 +153,15 @@ export function JoinTournamentModal({ onClose, initialCode }: { onClose: () => v
             disabled={isLoading}
             className={fieldClass}
           />
+          {joinCode.trim() && validateJoinCode(joinCode.trim()) && (
+            <p className="mt-2 text-xs text-red-500">{validateJoinCode(joinCode.trim())}</p>
+          )}
         </div>
         <ErrorMsg msg={error} />
       </ModalBody>
       <ModalFooter>
         <BtnSecondary onClick={onClose}>Cancel</BtnSecondary>
-        <BtnPrimary onClick={handleJoin} disabled={isLoading || !joinCode.trim()} loading={isLoading}>
+        <BtnPrimary onClick={handleJoin} disabled={isLoading || !!validateJoinCode(joinCode.trim())} loading={isLoading}>
           {isLoading ? 'Joining…' : 'Join'}
         </BtnPrimary>
       </ModalFooter>

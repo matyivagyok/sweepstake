@@ -223,9 +223,9 @@ function InviteFriendsBody({ name, joinCode }: { name: string; joinCode: string 
   const base = window.location.origin
   const text =
     `Hi, I am taking part in the "${name}" SweepStake.\n` +
-    `It would be even more fun if you'd join, too.\n` +
-    `Here is the link to join: ${base}?join=${joinCode}\n` +
-    `Join code: ${joinCode}`
+    `It would be even more fun if you'd join, too!\n\n` +
+    `Join code: ${joinCode}\n` +
+    `Here is the link to join: ${base}?join=${joinCode}`
 
   function handleCopy() {
     navigator.clipboard.writeText(text).then(() => {
