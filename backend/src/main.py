@@ -273,10 +273,9 @@ async def custom_swagger_ui() -> HTMLResponse:
 # Security middleware
 # ============================================================================
 
-_cors_origins = getattr(settings, "cors_origins", ["http://localhost:3000"])
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins,
+    allow_origins=settings.hosts,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],

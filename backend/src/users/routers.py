@@ -422,8 +422,7 @@ async def forgot_password(
         token = str(uuid.uuid4())
         expire_minutes = getattr(settings, "password_reset_expire_minutes", 30)
         await create_password_reset_token(db, user.id, token, expire_minutes)
-        frontend_url = getattr(settings, "frontend_url", "http://localhost:3000")
-        reset_link = f"{frontend_url}/reset-password?token={token}"
+        reset_link = f"{settings.main_host.rstrip('/')}/reset-password?token={token}"
         await send_password_reset_email(user.email, reset_link)
         logger.info("Password reset requested for user %s", user.id)
     return {"message": "If that email is registered you will receive a reset link shortly."}
