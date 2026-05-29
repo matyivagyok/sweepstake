@@ -1,5 +1,7 @@
 import asyncio
+import fcntl
 from datetime import datetime, timedelta, timezone
+from typing import IO
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -9,6 +11,31 @@ from src.config import settings
 from src.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+_SCHEDULER_LOCK_PATH = "/tmp/sweepstake_scheduler.lock"
+
+
+def try_acquire_scheduler_lock() -> IO | None:
+    """
+    Non-blocking exclusive flock on a lock file. Returns the open file object
+    on success — the caller must keep it open for the lock to remain held.
+    Returns None if another worker already holds the lock.
+
+    The OS releases the lock automatically when the process dies (any signal,
+    including SIGKILL), so the lock can never be held forever.
+    """
+    fd = open(_SCHEDULER_LOCK_PATH, "w")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return fd
+    except BlockingIOError:
+        fd.close()
+        return None
+
+
+def release_scheduler_lock(fd: IO) -> None:
+    fcntl.flock(fd, fcntl.LOCK_UN)
+    fd.close()
 
 
 async def _cleanup_old_sessions() -> None:
