@@ -56,7 +56,7 @@ from src.api_football_data_org.routers import router as football_data_org_router
 from src.stats.routers import router as stats_router
 from src.exceptions import CustomError, custom_error_handler
 from src.scripts.load_test_data import load_test_data
-from src.scheduler import build_scheduler
+from src.scheduler import build_scheduler, try_acquire_scheduler_lock, release_scheduler_lock
 
 
 setup_logging()
@@ -123,14 +123,22 @@ async def lifespan(app: FastAPI):
         await load_test_data()
         logger.info("Test data loaded successfully.")
 
-    scheduler = build_scheduler()
-    scheduler.start()
-    logger.info("APScheduler started: session cleanup scheduled daily at 05:00 %s", settings.tz)
+    _scheduler_lock = try_acquire_scheduler_lock()
+    scheduler = None
+    if _scheduler_lock is not None:
+        scheduler = build_scheduler()
+        scheduler.start()
+        logger.info("APScheduler started: session cleanup scheduled daily at 05:00 %s", settings.tz)
+    else:
+        logger.info("APScheduler: scheduler lock held by another worker, skipping start")
 
     yield
 
-    scheduler.shutdown(wait=False)
-    logger.info("APScheduler stopped")
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
+        logger.info("APScheduler stopped")
+    if _scheduler_lock is not None:
+        release_scheduler_lock(_scheduler_lock)
 
 app = FastAPI(
     root_path=settings.root_path,
