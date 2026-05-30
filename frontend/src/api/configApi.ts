@@ -4,6 +4,7 @@ export interface AppConfig {
   sentry_dsn: string
   app_version: string
   demo_mode: boolean
+  only_superusers_can_create_tournaments: boolean
 }
 
 export const configApi = baseApi.injectEndpoints({
