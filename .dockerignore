@@ -34,3 +34,4 @@ frontend/dist/
 # Custom
 *.nosync
 */db_migrations/*auto_startup_schema_sync.py
+**/data/*.html

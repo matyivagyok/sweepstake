@@ -392,7 +392,7 @@ def get_config():
     (e.g. the Sentry DSN injected as a container env var).
     Empty strings mean the feature is disabled.
     """
-    return {"sentry_dsn": settings.sentry_dsn, "app_version": settings.app_version, "demo_mode": settings.demo_mode}
+    return {"sentry_dsn": settings.sentry_dsn, "app_version": settings.app_version, "demo_mode": settings.demo_mode, "only_superusers_can_create_tournaments": settings.only_superusers_can_create_tournaments}
 
 # include routers
 app.include_router(auth_router)

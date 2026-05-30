@@ -12,6 +12,7 @@ from src.tournaments import crud, models
 from src.users.routers import verify_access_token
 from src.users.crud import get_user_by_id
 from src.emails.welcome_email import send_competition_welcome_email
+from src.config import settings
 
 router = APIRouter(prefix="/tournament", tags=["tournament"])
 
@@ -43,6 +44,10 @@ async def create_tournament_endpoint(
     Returns the created tournament with its ID.  A welcome email is dispatched to the creator in the background.
     """
     user_id = token_payload["uid"]
+    if settings.only_superusers_can_create_tournaments:
+        creator = await get_user_by_id(db, user_id)
+        if not creator or not creator.is_superuser:
+            raise CustomError("Only superusers can create tournaments", status_code=403)
     new_tournament = await crud.create_tournament(db, tournament, user_id=user_id)
     user = await get_user_by_id(db, user_id)
     if user:

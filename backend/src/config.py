@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     football_data_org_api_key: str = ""
     football_data_org_api_tier: Literal["TIER_ONE", "TIER_TWO", "TIER_THREE", "TIER_FOUR"] = "TIER_ONE"
     demo_mode: bool = False
+    only_superusers_can_create_tournaments: bool = False
     root_path: str = ""
     sentry_dsn: str = ""
     app_version: str = ""

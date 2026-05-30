@@ -140,6 +140,7 @@ docker compose -f /path/to/docker-compose.yml up -d
 | `FOOTBALL_DATA_ORG_API_KEY` | `""` | [football-data.org](https://www.football-data.org/) API key for importing fixtures and results. |
 | `FOOTBALL_DATA_ORG_API_TIER` | `TIER_ONE` | API tier for rate-limit handling (`TIER_ONE`–`TIER_FOUR`). |
 | `SENTRY_DSN` | `""` | [Sentry](https://sentry.io/) DSN for error monitoring (backend + frontend). Leave empty to disable. |
+| `ONLY_SUPERUSERS_CAN_CREATE_TOURNAMENTS` | `false` | When `true`, only superusers may create new tournaments. Use `manage.py promote_superuser <user_id>` to grant superuser status. |
 
 
 ### Management CLI
@@ -163,8 +164,10 @@ SweepStake shell  (type exit() or Ctrl-D to quit)
 >>> get_tournament_by_id(2)
 >>> get_user_tournaments(1)              # tournaments a user participates in
 
->>> welcome_email(tournament_id, user_id)   # trigger a management command from the shell
->>> upcoming_reminders()                     # run the upcoming-matches reminder job now
+>>> welcome_email(tournament_id, user_id)        # trigger a management command from the shell
+>>> upcoming_reminders()                          # run the upcoming-matches reminder job now
+>>> promote_superuser(user_id)                    # grant superuser privileges to a user
+>>> promote_superuser(user_id, demote=True)       # revoke superuser privileges
 ```
 
 For custom queries use `run()` to execute any coroutine:
@@ -180,6 +183,8 @@ For custom queries use `run()` to execute any coroutine:
 # One-liner without entering the container
 docker exec sweepstake-app bash -c "cd /app/backend && /venv/bin/python /app/backend/src/manage.py welcome_email 42 7"
 docker exec sweepstake-app bash -c "cd /app/backend && /venv/bin/python /app/backend/src/manage.py upcoming_reminders"
+docker exec sweepstake-app bash -c "cd /app/backend && /venv/bin/python /app/backend/src/manage.py promote_superuser 42"
+docker exec sweepstake-app bash -c "cd /app/backend && /venv/bin/python /app/backend/src/manage.py promote_superuser 42 --demote"
 ```
 
 

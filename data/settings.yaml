@@ -40,5 +40,9 @@ football_data_org_api_key: ""
 load_test_data: false
 root_path: ""
 
+# Restrict tournament creation to superusers only (default: false = any user can create).
+# Use manage.py promote_superuser <user_id> to grant superuser privileges.
+only_superusers_can_create_tournaments: false
+
 # Note: env var for this field is SENTRY_DSN (no value = disabled)
 sentry_dsn: ""

@@ -7,6 +7,7 @@ Commands:
   shell                        — interactive shell with DB session and helpers pre-loaded
   welcome_email <t_id> <u_id>  — send (or re-send) the welcome email for a tournament/user pair
   upcoming_reminders           — immediately run the upcoming-matches reminder job (normally fires at 15:00)
+  promote_superuser <u_id>     — grant superuser privileges to a user (use --demote to revoke)
 """
 import argparse
 import asyncio
@@ -21,7 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.database import AsyncSessionLocal
 from src.tournaments.crud import get_tournament_by_id
-from src.users.crud import get_user_by_id, get_user_by_email
+from src.users.crud import get_user_by_id, get_user_by_email, update_user
+from src.users.models import UserUpdate
 from src.emails.welcome_email import send_competition_welcome_email
 
 
@@ -60,6 +62,21 @@ async def _cmd_welcome_email(tournament_id: int, user_id: int) -> None:
             user_id=user.id,
         )
         print(f"Welcome email sent to {user.email} for tournament '{tournament.name}'.")
+
+
+# ---------------------------------------------------------------------------
+# promote_superuser
+# ---------------------------------------------------------------------------
+
+async def _cmd_promote_superuser(user_id: int, *, demote: bool = False) -> None:
+    async with AsyncSessionLocal() as db:
+        user = await get_user_by_id(db, user_id)
+        if user is None:
+            print(f"Error: user {user_id} not found.", file=sys.stderr)
+            sys.exit(1)
+        await update_user(db, user_id, UserUpdate(is_superuser=not demote))
+        action = "demoted from" if demote else "promoted to"
+        print(f"User {user_id} ({user.email}) {action} superuser.")
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +124,8 @@ Custom queries:
 Management commands:
   welcome_email(tournament_id, user_id)
   upcoming_reminders()                      run the upcoming-matches reminder job now
+  promote_superuser(user_id)                grant superuser privileges to a user
+  promote_superuser(user_id, demote=True)   revoke superuser privileges from a user
 """
 
 
@@ -173,6 +192,10 @@ async def _cmd_shell() -> None:
             """Run the upcoming-matches reminder job now: upcoming_reminders()"""
             run(_cmd_upcoming_reminders())
 
+        def promote_superuser(user_id: int, *, demote: bool = False) -> None:
+            """Grant (or revoke) superuser privileges: promote_superuser(user_id) / promote_superuser(user_id, demote=True)"""
+            run(_cmd_promote_superuser(user_id, demote=demote))
+
         namespace = {
             "db": db,
             "run": run,
@@ -185,6 +208,7 @@ async def _cmd_shell() -> None:
             # management commands
             "welcome_email": welcome_email,
             "upcoming_reminders": upcoming_reminders,
+            "promote_superuser": promote_superuser,
             # ad-hoc query building
             "select": select,
             "User": User,
@@ -226,6 +250,10 @@ def main() -> None:
 
     sub.add_parser("upcoming_reminders", help="Run the upcoming-matches reminder job now (normally fires at 15:00)")
 
+    p = sub.add_parser("promote_superuser", help="Grant (or revoke) superuser privileges for a user")
+    p.add_argument("user_id", type=int, help="User ID")
+    p.add_argument("--demote", action="store_true", default=False, help="Revoke superuser privileges instead")
+
     args = parser.parse_args()
 
     if args.command == "shell":
@@ -234,6 +262,8 @@ def main() -> None:
         asyncio.run(_cmd_welcome_email(args.tournament_id, args.user_id))
     elif args.command == "upcoming_reminders":
         asyncio.run(_cmd_upcoming_reminders())
+    elif args.command == "promote_superuser":
+        asyncio.run(_cmd_promote_superuser(args.user_id, demote=args.demote))
 
 
 if __name__ == "__main__":

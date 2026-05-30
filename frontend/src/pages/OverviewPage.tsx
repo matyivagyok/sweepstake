@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { UserPlus, Plus, LogOut, Settings } from 'lucide-react'
 import { useListTournamentsQuery } from '../api/tournamentApi'
 import { useLogoutMutation } from '../api/authApi'
+import { useGetConfigQuery } from '../api/configApi'
+import { useAppSelector } from '../store/hooks'
 import { PageShell } from '../components/PageShell'
 import { SettingsModal } from '../modals/user'
 import { JoinTournamentModal } from '../modals/user'
@@ -13,6 +15,9 @@ export function OverviewPage() {
   const [searchParams] = useSearchParams()
   const inboundJoinCode = searchParams.get('join') ?? ''
   const { data: tournaments, isLoading, error } = useListTournamentsQuery()
+  const { data: config } = useGetConfigQuery()
+  const currentUser = useAppSelector((state) => state.auth.user)
+  const canCreate = !config?.only_superusers_can_create_tournaments || !!currentUser?.is_superuser
   const [logout] = useLogoutMutation()
   const [showSettings, setShowSettings] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
@@ -67,13 +72,16 @@ export function OverviewPage() {
                 <UserPlus size={15} />
                 Join SweepStake
               </button>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="rounded-full bg-blue-600 hover:bg-blue-700 px-4 py-1.5 text-sm font-medium text-white transition inline-flex items-center justify-center gap-1.5"
-              >
-                <Plus size={15} />
-                Create SweepStake
-              </button>
+              <span title={!canCreate ? 'Only admins can create a SweepStake' : undefined}>
+                <button
+                  onClick={() => canCreate && setShowCreate(true)}
+                  disabled={!canCreate}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition inline-flex items-center justify-center gap-1.5 ${canCreate ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'}`}
+                >
+                  <Plus size={15} />
+                  Create SweepStake
+                </button>
+              </span>
             </div>
           </div>
         </div>
