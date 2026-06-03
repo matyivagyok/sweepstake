@@ -14,7 +14,7 @@ from src.users.routers import verify_access_token
 from src.users.crud import get_user_by_id
 from src.emails.welcome_email import send_competition_welcome_email
 from src.emails.payment_reminder_email import send_payment_reminder_email
-from src.api_football_data_org.import_tournament import import_tournament
+from src.api_football_data_org.update_tournament import update_tournaments
 from src.config import settings
 from src.logging_config import get_logger
 
@@ -437,10 +437,9 @@ async def tournament_admin_action_endpoint(
         if not tournament.football_data_org_id:
             raise CustomError("This tournament has no football-data.org ID configured", status_code=400)
         background_tasks.add_task(
-            import_tournament,
+            update_tournaments,
             db,
             tournament.football_data_org_id,
-            tournament,
         )
 
     elif body.action == models.TournamentAdminAction.send_welcome_email:
