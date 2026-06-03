@@ -71,28 +71,6 @@ async def update_tournaments(db: AsyncSession, football_data_org_id: int) -> Non
         home_goals = match["score"]["fullTime"]["home"]
         away_goals = match["score"]["fullTime"]["away"]
 
-        matched_home_team = await db.execute(
-            select(team_models.Team)
-            .where(team_models.Team.football_data_org_id == home_team["football_data_org_id"])
-        )
-        matched_home_team = matched_home_team.scalars().first()
-        if not matched_home_team and match["homeTeam"]["id"]:
-            # create team if it doesn't exist
-            matched_home_team = team_models.Team(**home_team)
-            db.add(matched_home_team)
-            await db.flush()  # flush to get matched_home_team.id
-        
-        matched_away_team = await db.execute(
-            select(team_models.Team)
-            .where(team_models.Team.football_data_org_id == away_team["football_data_org_id"])
-        )
-        matched_away_team = matched_away_team.scalars().first()
-        if not matched_away_team and match["awayTeam"]["id"]:
-            # create team if it doesn't exist
-            matched_away_team = team_models.Team(**away_team)
-            db.add(matched_away_team)
-            await db.flush()  # flush to get matched_away_team.id
-
         matched_matches = await db.execute(
             select(Match)
             .where(Match.football_data_org_id == match_football_data_org_id)
@@ -108,6 +86,31 @@ async def update_tournaments(db: AsyncSession, football_data_org_id: int) -> Non
             matched_match.start_datetime = start_datetime
             matched_match.home_goals = home_goals
             matched_match.away_goals = away_goals
+
+            matched_home_team = await db.execute(
+                select(team_models.Team)
+                .where(team_models.Team.football_data_org_id == home_team["football_data_org_id"])
+                .where(team_models.Team.tournament_id == matched_match.tournament_id)
+            )
+            matched_home_team = matched_home_team.scalars().first()
+            if not matched_home_team and match["homeTeam"]["id"]:
+                # create team if it doesn't exist
+                matched_home_team = team_models.Team(**home_team)
+                db.add(matched_home_team)
+                await db.flush()  # flush to get matched_home_team.id
+            
+            matched_away_team = await db.execute(
+                select(team_models.Team)
+                .where(team_models.Team.football_data_org_id == away_team["football_data_org_id"])
+                .where(team_models.Team.tournament_id == matched_match.tournament_id)
+            )
+            matched_away_team = matched_away_team.scalars().first()
+            if not matched_away_team and match["awayTeam"]["id"]:
+                # create team if it doesn't exist
+                matched_away_team = team_models.Team(**away_team)
+                db.add(matched_away_team)
+                await db.flush()  # flush to get matched_away_team.id
+
             matched_match.home_team_id = matched_home_team.id if matched_home_team is not None else None
             matched_match.away_team_id = matched_away_team.id if matched_away_team is not None else None
             
@@ -115,6 +118,33 @@ async def update_tournaments(db: AsyncSession, football_data_org_id: int) -> Non
         
         # if match is missing from tournament add it
         for tournament_id in tmp_tournament_ids:
+
+            matched_home_team = await db.execute(
+                select(team_models.Team)
+                .where(team_models.Team.football_data_org_id == home_team["football_data_org_id"])
+                .where(team_models.Team.tournament_id == tournament_id)
+                .order_by(team_models.Team.id)
+            )
+            matched_home_team = matched_home_team.scalars().first()
+            if not matched_home_team and match["homeTeam"]["id"]:
+                # create team if it doesn't exist
+                matched_home_team = team_models.Team(**home_team)
+                db.add(matched_home_team)
+                await db.flush()  # flush to get matched_home_team.id
+            
+            matched_away_team = await db.execute(
+                select(team_models.Team)
+                .where(team_models.Team.football_data_org_id == away_team["football_data_org_id"])
+                .where(team_models.Team.tournament_id == tournament_id)
+                .order_by(team_models.Team.id)
+            )
+            matched_away_team = matched_away_team.scalars().first()
+            if not matched_away_team and match["awayTeam"]["id"]:
+                # create team if it doesn't exist
+                matched_away_team = team_models.Team(**away_team)
+                db.add(matched_away_team)
+                await db.flush()  # flush to get matched_away_team.id
+
             new_match = Match(
                 football_data_org_id=match_football_data_org_id,
                 tournament_id=tournament_id,
