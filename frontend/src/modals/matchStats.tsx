@@ -23,6 +23,7 @@ export function MatchStatsModal({
     stats?.away_goals != null &&
     stats.home_goals >= stats.away_goals
   const predictions = stats?.predictions
+    .filter((p) => p.home_score != null && p.away_score != null)
     .map((p) => ({
       ...p,
       winner:
@@ -53,8 +54,10 @@ export function MatchStatsModal({
         : (a.winner ?? -Infinity) - (b.winner ?? -Infinity)) ||
       // 2. winner_score: desc (higher winning score first); nulls last
       (b.winner_score ?? -1) - (a.winner_score ?? -1) ||
-      // 3. loser_score: asc (lower losing score first); nulls last
-      (a.loser_score ?? Infinity) - (b.loser_score ?? Infinity)
+      // 3. if homeWins: sort loser_score: asc (closest to correct loser score first); if away wins: sort loser_score: desc (closest to correct loser score first); nulls last
+      (homeWins
+        ? (a.loser_score ?? Infinity) - (b.loser_score ?? Infinity)
+        : (b.loser_score ?? -Infinity) - (a.loser_score ?? -Infinity))
     )
   console.log('debug prediction sorting', predictions)
   const navigate = useNavigate()
