@@ -27,6 +27,7 @@
 - Reuse existing tag types for cache invalidation; do not invent new tag strings.
 - **Type sync with backend models:** Whenever backend models or API schemas change, update the corresponding TypeScript types and RTK Query endpoint definitions in `frontend/src/` to match. Keep request/response types in sync; do not leave stale field names or missing fields in the frontend types.
 - Tailwind-only styling. Respect OS light/dark mode — no custom theme toggle unless explicitly requested.
+- **Icons:** Always use `lucide-react` for icons. Never write inline SVG or hardcode `<path>` elements.
 - Fully responsive: iPhone 12 portrait → 4K landscape. Cap content width on wide screens.
 
 ## Deployment
@@ -38,6 +39,10 @@
 - Fixtures in `backend/tests/conftest.py`: use `client_user_1` (auth bypassed via dependency override) for fast unit tests; use `client_unauth` only when testing the actual cookie/JWT auth flow.
 - Do not hand-write auth tokens or override dependencies inside individual test files — use the existing fixtures.
 - **Test coverage for model changes:** After any change to `models.py` (new fields, removed fields, type changes, new relationships), verify that existing tests still pass and add or update tests to cover the changed behaviour. At minimum: assert new fields are returned in API responses, accepted in create/update requests, and validated correctly. Run `pytest backend/tests/<touched_area>/` before declaring done.
+
+## Documentation
+- **README.md env var table:** When adding or removing a config setting in `backend/src/config.py`, add or update the corresponding row in the `README.md` environment variables table.
+- **FastAPI docs:** Endpoint docstrings and field `description=` params in `routers.py` are the source of truth for the interactive API docs. Keep them accurate when changing behavior. Do not add docs anywhere else.
 
 ## Validation
 - Backend: `pytest backend/tests/<touched_area>/`
