@@ -106,9 +106,6 @@ updates:
     target-branch: "dev"
     cooldown:
       default-days: 14
-      semver-patch-days: 14
-      semver-minor-days: 14
-      semver-major-days: 21
     groups:
       actions-minor-patch:
         update-types:
