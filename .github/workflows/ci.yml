@@ -34,10 +34,10 @@ jobs:
           cache-dependency-path: backend/src/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r src/requirements.txt
+        run: pip install -r src/requirements.txt -r src/requirements-test.txt
 
       - name: Run tests
-        run: pytest tests/ -q --junit-xml=test-results.xml
+        run: python -m pytest tests/ -q --junit-xml=test-results.xml
 
       - name: Publish test results
         if: always()
@@ -68,6 +68,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Type check
+        id: typecheck
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx tsc --noEmit 2>&1 | tee /tmp/typecheck.txt
+
       - name: Lint
         id: lint
         continue-on-error: true
@@ -91,19 +99,25 @@ jobs:
           script: |
             const fs = require('fs');
             const icon = s => s === 'success' ? '✅' : '❌';
+            const typecheck = '${{ steps.typecheck.outcome }}';
             const lint = '${{ steps.lint.outcome }}';
             const build = '${{ steps.build.outcome }}';
-            let body = `### Frontend Results\n| Step | Status |\n|---|---|\n| Lint | ${icon(lint)} ${lint} |\n| Build | ${icon(build)} ${build} |`;
-            const lintOut = fs.existsSync('/tmp/lint.txt') ? fs.readFileSync('/tmp/lint.txt', 'utf8').trim() : '';
-            const buildOut = fs.existsSync('/tmp/build.txt') ? fs.readFileSync('/tmp/build.txt', 'utf8').trim() : '';
-            if (lint !== 'success' && lintOut)
-              body += `\n\n<details><summary>Lint output</summary>\n\n\`\`\`\n${lintOut.slice(0, 4000)}\n\`\`\`\n</details>`;
-            if (build !== 'success' && buildOut)
-              body += `\n\n<details><summary>Build output</summary>\n\n\`\`\`\n${buildOut.slice(0, 4000)}\n\`\`\`\n</details>`;
+            let body = `### Frontend Results\n| Step | Status |\n|---|---|\n| Type check | ${icon(typecheck)} ${typecheck} |\n| Lint | ${icon(lint)} ${lint} |\n| Build | ${icon(build)} ${build} |`;
+            const steps = [
+              { name: 'Type check', outcome: typecheck, file: '/tmp/typecheck.txt' },
+              { name: 'Lint',       outcome: lint,      file: '/tmp/lint.txt' },
+              { name: 'Build',      outcome: build,     file: '/tmp/build.txt' },
+            ];
+            for (const s of steps) {
+              if (s.outcome !== 'success') {
+                const out = fs.existsSync(s.file) ? fs.readFileSync(s.file, 'utf8').trim() : '';
+                if (out) body += `\n\n<details><summary>${s.name} output</summary>\n\n\`\`\`\n${out.slice(0, 4000)}\n\`\`\`\n</details>`;
+              }
+            }
             await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
 
-      - name: Fail if lint or build failed
-        if: steps.lint.outcome == 'failure' || steps.build.outcome == 'failure'
+      - name: Fail if any check failed
+        if: steps.typecheck.outcome == 'failure' || steps.lint.outcome == 'failure' || steps.build.outcome == 'failure'
         run: exit 1
 
   docker-build:
