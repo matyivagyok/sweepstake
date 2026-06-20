@@ -54,8 +54,9 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
   }
 
   if (result.error && !isAuthEndpoint && result.error.status !== 401) {
-    const data = result.error && 'data' in result.error ? (result.error.data as { detail?: string } | undefined) : undefined
-    const message = data?.detail ?? 'Something went wrong. Please try again.'
+    const data = result.error && 'data' in result.error ? (result.error.data as { detail?: string | Array<{ msg: string }> } | undefined) : undefined
+    const detail = data?.detail
+    const message = typeof detail === 'string' ? detail : Array.isArray(detail) && detail.length > 0 ? detail.map((e) => e.msg).join(', ') : 'Something went wrong. Please try again.'
     api.dispatch(
       addApiError({
         id: `${Date.now()}-${Math.random()}`,

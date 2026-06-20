@@ -123,6 +123,7 @@ export function RegisterForm() {
             name="password"
             type="password"
             required
+            minLength={8}
             value={form.password}
             onChange={handleChange}
             className={`${passwordMismatch ? errorInputClass : inputClass} ${passwordMatch ? 'pr-9' : ''}`}
