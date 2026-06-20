@@ -8,7 +8,12 @@ export function getApiErrorMessage(
 ): string {
   if (!error) return fallback
   if ('data' in error) {
-    return (error.data as { detail?: string })?.detail ?? fallback
+    const detail = (error.data as { detail?: string | Array<{ msg: string }> })?.detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail) && detail.length > 0) {
+      return detail.map((e) => e.msg).join(', ')
+    }
+    return fallback
   }
   return fallback
 }
