@@ -8,6 +8,12 @@ const rawBaseQuery = fetchBaseQuery({
   credentials: 'include',
 })
 
+// Single-flight lock: only one /auth/refresh call in flight at a time.
+// All concurrent 401s await this promise rather than each firing their own refresh,
+// which would cause token-rotation races (second refresh returns 401 because
+// the token was already consumed by the first).
+let refreshPromise: Promise<boolean> | null = null
+
 /**
  * Wraps rawBaseQuery with automatic token refresh on 401.
  * The backend uses HttpOnly cookie-based JWT — on 401 we call /auth/refresh
@@ -32,15 +38,29 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 
   const isAuthEndpoint = url.startsWith('/auth/')
 
-  if (result.error?.status === 401) {
-    console.log('[API] POST /auth/refresh (token refresh)')
-    const refreshResult = await rawBaseQuery(
-      { url: '/auth/refresh', method: 'POST' },
-      api,
-      extraOptions,
-    )
+  // Don't try to refresh if the failing request IS the refresh endpoint
+  // (avoids an extra round-trip when the refresh token itself is expired).
+  if (result.error?.status === 401 && url !== '/auth/refresh') {
+    if (refreshPromise === null) {
+      console.log('[API] POST /auth/refresh (token refresh)')
+      refreshPromise = (async () => {
+        const r = await rawBaseQuery(
+          { url: '/auth/refresh', method: 'POST' },
+          api,
+          extraOptions,
+        )
+        if (r.error) {
+          console.warn('[API] POST /auth/refresh → failed', r.error)
+          return false
+        }
+        return true
+      })().finally(() => {
+        refreshPromise = null
+      })
+    }
 
-    if (!refreshResult.error) {
+    const refreshed = await refreshPromise
+    if (refreshed) {
       console.log(`[API] ${method} ${url} (retry after refresh)`)
       result = await rawBaseQuery(args, api, extraOptions)
       if (result.error) {
@@ -48,8 +68,6 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
       } else {
         console.log(`[API] ${method} ${url} retry → OK`)
       }
-    } else {
-      console.warn('[API] POST /auth/refresh → failed', refreshResult.error)
     }
   }
 
