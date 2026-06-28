@@ -13,12 +13,76 @@ from src.database import AsyncSessionLocal
 from src.teams import models as team_models
 from src.matches.models import Match
 from src.predictions import scoring as predictions_scoring
+from src.groups_stages import crud as groups_stages_crud, models as groups_stages_models
 from src.config import settings
 from src.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 _DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
+
+
+async def _auto_set_group_winners(
+    db: AsyncSession,
+    football_data_org_id: int,
+    tournament_ids: list[int],
+) -> None:
+    url = f"https://api.football-data.org/v4/competitions/{football_data_org_id}/standings"
+    headers = {"X-Auth-Token": settings.football_data_org_api_key}
+    try:
+        response = await asyncio.to_thread(requests.get, url, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        logger.warning("Failed to fetch standings for competition %s: %s", football_data_org_id, e)
+        return
+
+    for standing in data.get("standings", []):
+        if standing.get("type") != "TOTAL" or standing.get("stage") != "GROUP_STAGE":
+            continue
+        group_raw = standing.get("group")
+        table = standing.get("table", [])
+        if not group_raw or not table:
+            continue
+
+        # Only act when every team has finished all their group games
+        expected_games = len(table) - 1
+        if not all(entry["playedGames"] >= expected_games for entry in table):
+            continue
+
+        winner_fdorg_id = table[0]["team"]["id"]  # API returns table sorted by position
+        group_name = group_raw.replace("_", " ").title()  # "GROUP_A" → "Group A" (matches DB format)
+
+        for tournament_id in tournament_ids:
+            result = await db.execute(
+                select(groups_stages_models.Group)
+                .where(groups_stages_models.Group.tournament_id == tournament_id)
+                .where(groups_stages_models.Group.name == group_name)
+            )
+            group = result.scalar_one_or_none()
+            if group is None:
+                continue
+
+            result = await db.execute(
+                select(team_models.Team)
+                .where(team_models.Team.football_data_org_id == winner_fdorg_id)
+                .where(team_models.Team.tournament_id == tournament_id)
+            )
+            winning_team = result.scalar_one_or_none()
+            if winning_team is None:
+                logger.warning("Winner team fdorg_id=%s not found in DB for tournament %s", winner_fdorg_id, tournament_id)
+                continue
+
+            if group.winner_team_id == winning_team.id:
+                continue  # already correct, skip
+
+            logger.info("Auto-setting winner of %s → %s (tournament %s)", group_name, winning_team.name, tournament_id)
+            await groups_stages_crud.update_group(
+                db,
+                group.id,
+                groups_stages_models.GroupUpdate(winner_team_id=winning_team.id),
+                background_tasks=None,  # triggers recalculate directly (no HTTP context here)
+            )
 
 
 async def update_tournaments(db: AsyncSession, football_data_org_id: int) -> None:
@@ -167,6 +231,7 @@ async def update_tournaments(db: AsyncSession, football_data_org_id: int) -> Non
         await predictions_scoring.recalculate_match_points(db, match_id)
 
     await db.commit()
+    await _auto_set_group_winners(db, football_data_org_id, tournament_ids)
 
     hash_file.write_text(data_hash)
 
