@@ -6,7 +6,6 @@ import { useLogoutMutation } from '../api/authApi'
 import { useGetConfigQuery } from '../api/configApi'
 import { useAppSelector } from '../store/hooks'
 import { PageShell } from '../components/PageShell'
-import { SettingsModal } from '../modals/user'
 import { JoinTournamentModal } from '../modals/user'
 import { CreateTournamentModal } from '../modals/tournament'
 
@@ -19,7 +18,6 @@ export function OverviewPage() {
   const currentUser = useAppSelector((state) => state.auth.user)
   const canCreate = !config?.only_superusers_can_create_tournaments || !!currentUser?.is_superuser
   const [logout] = useLogoutMutation()
-  const [showSettings, setShowSettings] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [showJoin, setShowJoin] = useState(!!inboundJoinCode)
   const [joinCode, setJoinCode] = useState(inboundJoinCode)
@@ -36,7 +34,6 @@ export function OverviewPage() {
 
   return (
     <PageShell>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showCreate && <CreateTournamentModal onClose={() => setShowCreate(false)} />}
       {showJoin && <JoinTournamentModal onClose={() => { setShowJoin(false); setJoinCode('') }} initialCode={joinCode} />}
       <div className="p-6 sm:p-8">
@@ -49,7 +46,7 @@ export function OverviewPage() {
             {/* Row 1: account buttons */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowSettings(true)}
+                onClick={() => navigate('/settings')}
                 className="rounded-full border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-gray-400 hover:text-gray-900 dark:hover:border-gray-400 dark:hover:text-gray-100 transition inline-flex items-center gap-1.5"
               >
                 <Settings size={15} />

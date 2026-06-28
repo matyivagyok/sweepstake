@@ -17,6 +17,7 @@ const OverviewPage = lazy(() => import('./pages/OverviewPage').then((m) => ({ de
 const TournamentPage = lazy(() => import('./pages/TournamentPage').then((m) => ({ default: m.TournamentPage })))
 const PredictionsPage = lazy(() => import('./pages/PredictionsPage').then((m) => ({ default: m.PredictionsPage })))
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage').then((m) => ({ default: m.LeaderboardPage })))
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 
 function PageFallback() {
   return (
@@ -142,6 +143,7 @@ export default function App() {
         {/* Protected routes — require an active session */}
         <Route element={<ProtectedRoute />}>
           <Route path="/overview" element={<OverviewPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/tournament/:id" element={<TournamentPage />} />
           <Route path="/tournament/:id/leaderboard" element={<LeaderboardPage />} />
           <Route path="/tournament/:id/predictions" element={<PredictionsPage />} />
