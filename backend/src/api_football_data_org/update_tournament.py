@@ -100,7 +100,7 @@ async def update_tournaments(db: AsyncSession, football_data_org_id: int) -> Non
         return
 
     matches = data["matches"]
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
     past_matches = [
         m for m in matches
         if m["status"] == "FINISHED"
