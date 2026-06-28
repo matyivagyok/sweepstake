@@ -38,7 +38,7 @@ async def _auto_set_group_winners(
         return
 
     for standing in data.get("standings", []):
-        if standing.get("type") != "TOTAL" or standing.get("stage") != "GROUP_STAGE":
+        if standing.get("type") != "TOTAL":
             continue
         group_raw = standing.get("group")
         table = standing.get("table", [])
